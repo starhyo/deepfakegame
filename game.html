@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎪 픽셀 놀이동산 딥페이크 윤리 풍선 게임</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Jua', sans-serif;
+            touch-action: manipulation;
+            user-select: none;
+            /* 배경 임시 수정: 안정적인 하늘색 그라데이션 (웹 호스팅 문제 해결 전까지 사용) */
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+            /* 🔔 웹에 게시할 경우, 여기에 Imgur 등으로 얻은 이미지의 공개 URL을 넣어주세요! */
+            /* 예시: background: url('여기에_확실한_이미지_URL_삽입') no-repeat center center fixed; */
+            background-size: cover;
+            position: relative;
+            min-height: 100vh;
+        }
+
+        /* 점수판 - 놀이동산 간판 느낌 */
+        #score-board {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(to right, #FFD700, #FFC107);
+            border: 4px solid #FFA000;
+            padding: 10px 40px;
+            border-radius: 15px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+            font-size: 32px;
+            font-weight: bold;
+            color: #8B4513;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            text-shadow: 2px 2px 3px rgba(255,255,255,0.7);
+            animation: bounceIn 0.8s ease-out;
+        }
+        @keyframes bounceIn {
+            0% { transform: translateX(-50%) scale(0.3); opacity: 0; }
+            50% { transform: translateX(-50%) scale(1.1); opacity: 1; }
+            70% { transform: translateX(-50%) scale(0.9); }
+            100% { transform: translateX(-50%) scale(1); }
+        }
+
+        /* 시작/종료 화면 - 더 화려하게 */
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75); 
+            backdrop-filter: blur(5px); 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            color: white;
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #overlay h1 { font-size: 60px; margin: 0 0 20px 0; color: #FFD700; text-shadow: 4px 4px 6px #8B4513; animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        #overlay p { font-size: 26px; line-height: 1.8; color: #E0E0E0; text-shadow: 1px 1px 2px #000; }
+        #start-btn {
+            margin-top: 40px;
+            padding: 18px 60px;
+            font-size: 32px;
+            background-color: #FF4500; 
+            color: white;
+            border: none;
+            border-radius: 60px;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 8px 0 #CD3700, 0 0 15px rgba(255,255,255,0.6);
+            transition: transform 0.1s, box-shadow 0.1s;
+            letter-spacing: 2px;
+        }
+        #start-btn:active { transform: translateY(8px); box-shadow: 0 0 0 #CD3700; }
+
+        /* 풍선 스타일 (XL 사이즈 유지) */
+        .balloon {
+            position: absolute;
+            bottom: -250px;
+            width: 180px;
+            height: 220px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+            cursor: url('https://user-images.githubusercontent.com/120281699/281696043-982c75a4-944a-4d22-b5e1-80a9d80c1dfd.png') 25 25, pointer;
+            font-size: 20px; 
+            font-weight: 900;
+            line-height: 1.3;
+            box-shadow: inset -15px -15px 30px rgba(0,0,0,0.15);
+            transition: transform 0.1s;
+            color: #333;
+            word-break: keep-all;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.5);
+        }
+        
+        /* 풍선 꼬리 */
+        .balloon::after {
+            content: '';
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 15px solid inherit;
+        }
+        
+        /* 풍선 실 */
+        .balloon::before {
+            content: '';
+            position: absolute;
+            bottom: -80px;
+            left: 50%;
+            width: 2px;
+            height: 80px;
+            background-color: rgba(0,0,0,0.3);
+        }
+
+        /* 터지는 효과 - 폭죽 느낌 */
+        .pop-effect {
+            animation: popBalloon 0.3s forwards;
+            pointer-events: none;
+        }
+        @keyframes popBalloon {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.8; }
+            100% { transform: scale(0.1); opacity: 0; }
+        }
+
+        /* 폭죽 효과 */
+        .firework {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: transparent;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: explode 0.8s forwards;
+            pointer-events: none;
+            z-index: 101;
+        }
+        @keyframes explode {
+            0% { transform: scale(0); opacity: 1; }
+            10% { box-shadow: 0 0 0 5px rgba(255, 255, 0, 0.7), 0 0 0 10px rgba(255, 165, 0, 0.5), 0 0 0 15px rgba(255, 0, 0, 0.3); }
+            50% { box-shadow: 0 0 0 20px rgba(255, 255, 0, 0.7), 0 0 0 30px rgba(255, 165, 0, 0.5), 0 0 0 40px rgba(255, 0, 0, 0.3); opacity: 0.5; }
+            100% { transform: scale(1); box-shadow: none; opacity: 0; }
+        }
+
+        /* 폰트 임포트 */
+        @import url('https://fonts.googleapis.com/css2?family=Jua&display=swap');
+    </style>
+</head>
+<body>
+
+    <div id="score-board">
+        <span>🎉 점수:</span>
+        <span id="score">0</span>
+    </div>
+
+    <div id="game-container"></div>
+
+    <div id="overlay">
+        <h1>🎡 픽셀 놀이동산 🎡</h1>
+        <p>
+            안녕하세요, 어린이 여러분!<br>
+            딥페이크 픽셀 놀이동산에 오신 것을 환영해요!<br>
+            <br>
+            <span style="color:#FF6B6B">🚨 잘못된 행동 풍선</span>은 <strong>빵 터트리고!</strong> 💥<br>
+            <span style="color:#4ECDC4">✅ 올바른 행동 풍선</span>은 <strong>하늘로 높이 올려보내 주세요!</strong> ☁️<br>
+            <br>
+            점수를 많이 모아 딥페이크 윤리 왕이 되어 봐요!
+        </p>
+        <button id="start-btn" onclick="startGame()">게임 시작하기</button>
+    </div>
+
+    
+<script>
+        const quizzes = [
+            { text: "친구 얼굴을<br>몰래 합성한다", type: "bad" },
+            { text: "진짜인지<br>뉴스로 확인한다", type: "good" },
+            { text: "가짜 영상을<br>마구 퍼나른다", type: "bad" },
+            { text: "나쁜 제작 제안을<br>거절한다", type: "good" },
+            { text: "친구를 괴롭히는<br>영상을 만든다", type: "bad" },
+            { text: "위험한 영상은<br>공유하지 않는다", type: "good" },
+            { text: "선생님 목소리를<br>가짜로 흉내낸다", type: "bad" },
+            { text: "이상한 영상을<br>보면 바로 신고한다", type: "good" },
+            { text: "영상을<br>무조건 믿어 버린다", type: "bad" },
+            { text: "친구에게 사용<br>허락을 받는다", type: "good" }
+        ];
+
+        let score = 0;
+        let gameActive = false;
+        let spawnInterval;
+        let balloonSpeed = 1.5; 
+        const container = document.getElementById('game-container');
+        const scoreEl = document.getElementById('score');
+        const overlay = document.getElementById('overlay');
+        const overlayTitle = overlay.querySelector('h1');
+        const startBtn = document.getElementById('start-btn');
+        // const bgMusic = document.getElementById('bg-music'); 
+
+        function startGame() {
+            score = 0;
+            scoreEl.innerText = score;
+            gameActive = true;
+            balloonSpeed = 1.5; 
+            container.innerHTML = ''; 
+            overlay.style.display = 'none';
+
+            // if (bgMusic) bgMusic.play(); 
+
+            spawnInterval = setInterval(createBalloon, 1800);
+            requestAnimationFrame(gameLoop);
+        }
+
+        function gameOver(reason) {
+            gameActive = false;
+            clearInterval(spawnInterval);
+            overlay.style.display = 'flex';
+            
+            // 승리/패배 메시지 설정
+            if (reason.includes("축하해요")) {
+                overlayTitle.innerText = "✨ 대단해요! 게임 승리! ✨";
+            } else {
+                overlayTitle.innerText = "😭 게임 끝! 😭";
+            }
+
+            overlay.querySelector('p').innerHTML = `
+                ${reason}<br><br>
+                내 점수: <span style="font-size:45px; color:#FFD700; text-shadow: 2px 2px 3px #8B4513;">${score}점</span>
+            `;
+            startBtn.innerText = "다시 한번 도전!";
+            // if (bgMusic) bgMusic.pause(); 
+        }
+
+        function createBalloon() {
+            if (!gameActive) return;
+
+            const quiz = quizzes[Math.floor(Math.random() * quizzes.length)];
+            const balloon = document.createElement('div');
+            balloon.classList.add('balloon');
+            
+            balloon.dataset.type = quiz.type;
+            balloon.innerHTML = quiz.text;
+
+            const colors = ['#FF9AA2', '#FFB7B2', '#FFDAC1', '#E2F0CB', '#B5EAD7', '#C7CEEA'];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            balloon.style.backgroundColor = color;
+            balloon.style.borderTopColor = color;
+
+            balloon.style.left = (Math.random() * 60 + 10) + '%';
+            balloon.style.bottom = '-260px'; 
+
+            balloon.addEventListener('click', function(e) {
+                if (!gameActive) return;
+
+                if (quiz.type === 'bad') {
+                    popBalloon(balloon, e.clientX, e.clientY); 
+                } else {
+                    gameOver("저런! 😱<br>올바른 행동은 터트리면 안 돼요!");
+                }
+            });
+
+            container.appendChild(balloon);
+        }
+
+        function popBalloon(element, clickX, clickY) {
+            // 폭죽 효과 생성
+            const firework = document.createElement('div');
+            firework.classList.add('firework');
+            firework.style.left = clickX + 'px';
+            firework.style.top = clickY + 'px';
+            container.appendChild(firework);
+
+            element.innerHTML = "💥<br>잘했어!";
+            element.style.backgroundColor = "#fff";
+            element.style.border = "3px solid #FF6B6B";
+            element.classList.add('pop-effect');
+
+            // 폭죽 효과와 풍선 제거 타이밍 맞추기
+            setTimeout(() => {
+                element.remove();
+                firework.remove();
+            }, 300); // 0.3초 후 제거
+        }
+
+        function gameLoop() {
+            if (!gameActive) return;
+
+            const balloons = document.querySelectorAll('.balloon');
+            
+            balloons.forEach(balloon => {
+                let currentBottom = parseFloat(window.getComputedStyle(balloon).bottom);
+                
+                balloon.style.bottom = (currentBottom + balloonSpeed) + 'px';
+
+                if (currentBottom > window.innerHeight) {
+                    const type = balloon.dataset.type;
+                    
+                    if (type === 'good') {
+                        score++;
+                        scoreEl.innerText = score;
+                        balloon.remove();
+
+                        // 🏆 10점 획득 시 게임 종료 (승리)
+                        if (score >= 10) {
+                            gameOver("축하해요! 🎊<br>당신은 딥페이크 윤리 왕입니다!");
+                            return; // 승리 시 루프 중단
+                        }
+                        
+                        // 5점마다 속도가 0.5씩 빨라지는 것은 유지하여 난이도 조절
+                        if (score % 5 === 0) balloonSpeed += 0.5;
+                        
+                    } else if (type === 'bad') {
+                        // 😭 잘못된 풍선이 하늘로 올라가면 게임 오버 (패배)
+                        gameOver("안 돼! 😭<br>잘못된 행동이 하늘로 올라갔어요!");
+                    }
+                }
+            });
+
+            requestAnimationFrame(gameLoop);
+        }
+    </script> 
+</body>
+</html>
